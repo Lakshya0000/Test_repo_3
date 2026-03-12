@@ -31,12 +31,22 @@ export async function bookTicket(req: Request, res: Response): Promise<void> {
   // Process payment
   const paymentSuccess = processPayment(payment as Payment)
   if (!paymentSuccess) {
-    res.status(400).json({ error: 'Payment failed. Invalid payment details.' })
+    // Payment failed — seat remains available
+    res.status(400).json({ error: 'Payment failed' })
     return
   }
 
-  // Mark seat as booked
-  await Seat.updateOne({ seat_id: seatId }, { available: false })
+  // Atomically mark seat as booked only if still available (seat blocking)
+  const updated = await Seat.findOneAndUpdate(
+    { seat_id: seatId, available: true },
+    { available: false },
+    { new: true },
+  )
+
+  if (!updated) {
+    res.status(409).json({ error: 'Seat is already booked' })
+    return
+  }
 
   // Create booking
   const bookingId = await getNextBookingId()

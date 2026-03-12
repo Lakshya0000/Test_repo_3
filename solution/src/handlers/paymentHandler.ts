@@ -20,7 +20,11 @@ interface WalletPayment {
 export type Payment = UpiPayment | CreditCardPayment | WalletPayment
 
 export function processPayment(payment: Payment): boolean {
-  // For Level 1, all payments succeed
+  // Simulate random payment failure (30% chance)
+  if (Math.random() < 0.3) {
+    return false
+  }
+
   switch (payment.payment_mode) {
     case 'UPI':
       return !!payment.upi_id
